@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain.Administration;
 using PromoCodeFactory.WebHost.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PromoCodeFactory.WebHost.Controllers
 {
@@ -69,6 +70,69 @@ namespace PromoCodeFactory.WebHost.Controllers
             };
 
             return employeeModel;
+        }
+
+        /// <summary>
+        /// Метод Create
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        async public Task<IActionResult> Create(
+           [FromQuery] string firstName,
+           [FromQuery] string lastName,
+           [FromQuery] string email)
+        {
+            Employee employee = new Employee
+            {
+                Id = Guid.NewGuid(),
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                Roles = new List<Role>(),
+                AppliedPromocodesCount = 0
+            };
+            Guid? res = await _employeeRepository.AddAsync(employee);
+            return res.HasValue ? Ok(res) : NotFound();
+        }
+
+        /// <summary>
+        /// Метод Update
+        /// </summary>
+        /// <returns></returns>
+        [HttpPut("{id:Guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] Employee employee)
+        {
+            try
+            {
+                var existingEmployee = await _employeeRepository.GetByIdAsync(id);
+                if (existingEmployee == null)
+                {
+                    return NotFound();
+                }
+
+                existingEmployee.FirstName = employee.FirstName;
+                existingEmployee.LastName = employee.LastName;
+                existingEmployee.Email = employee.Email;
+
+                await _employeeRepository.UpdateAsync(existingEmployee);
+                return Ok(existingEmployee);
+            }
+
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Метод Delete
+        /// </summary>
+        /// <returns></returns>
+        [HttpDelete("{id:Guid}")]
+        async public Task<IActionResult> Delete(Guid id)
+        {
+            bool res = await _employeeRepository.DeleteAsync(id);
+            return res ? Ok() : NotFound();
         }
     }
 }
